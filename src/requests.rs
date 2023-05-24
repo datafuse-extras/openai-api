@@ -14,39 +14,47 @@ pub trait Requests {
 
 impl Requests for OpenAI {
 	fn post(&self, sub_url: &str, body: Json) -> ApiResult<Json> {
-		let path = if self.api_version.is_empty() {
-			self.api_url.clone() + sub_url
+		let request = if self.api_version.is_empty() {
+			let path = self.api_url.clone() + sub_url;
+			self.agent
+				.post(&path)
+				.set("Content-Type", "application/json")
+				.set("OpenAI-Organization", &self.auth.organization.clone().unwrap_or_default())
+				.set("Authorization", &format!("Bearer {}", self.auth.api_key))
 		} else {
 			// azure openai:
 			// api_url/chat/completions?api-version=2023-03-15-preview
-			self.api_url.clone() + sub_url + "?api-version=" + &*self.api_version.clone()
+			let path =
+				self.api_url.clone() + sub_url + "?api-version=" + &*self.api_version.clone();
+			self.agent
+				.post(&path)
+				.set("Content-Type", "application/json")
+				.set("api-key", &self.auth.api_key)
 		};
-		let response = self
-			.agent
-			.post(&path)
-			.set("Content-Type", "application/json")
-			.set("OpenAI-Organization", &self.auth.organization.clone().unwrap_or_default())
-			.set("Authorization", &format!("Bearer {}", self.auth.api_key))
-			.send_json(body);
+		let response = request.send_json(body);
 
 		deal_response(response, sub_url)
 	}
 
 	fn get(&self, sub_url: &str) -> ApiResult<Json> {
-		let path = if self.api_version.is_empty() {
-			self.api_url.clone() + sub_url
+		let request = if self.api_version.is_empty() {
+			let path = self.api_url.clone() + sub_url;
+			self.agent
+				.get(&path)
+				.set("Content-Type", "application/json")
+				.set("OpenAI-Organization", &self.auth.organization.clone().unwrap_or_default())
+				.set("Authorization", &format!("Bearer {}", self.auth.api_key))
 		} else {
 			// azure openai:
 			// api_url/chat/completions?api-version=2023-03-15-preview
-			self.api_url.clone() + sub_url + "?api-version=" + &*self.api_version.clone()
+			let path =
+				self.api_url.clone() + sub_url + "?api-version=" + &*self.api_version.clone();
+			self.agent
+				.get(&path)
+				.set("Content-Type", "application/json")
+				.set("api-key", &self.auth.api_key)
 		};
-		let response = self
-			.agent
-			.get(&path)
-			.set("Content-Type", "application/json")
-			.set("OpenAI-Organization", &self.auth.organization.clone().unwrap_or_default())
-			.set("Authorization", &format!("Bearer {}", self.auth.api_key))
-			.call();
+		let response = request.call();
 
 		deal_response(response, sub_url)
 	}
